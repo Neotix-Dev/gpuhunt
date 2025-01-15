@@ -23,6 +23,7 @@ def main():
             "vastai",
             "vultr",
             "latitude",
+            "scaleway",
         ],
     )
     parser.add_argument("--output", required=True)
@@ -91,6 +92,9 @@ def main():
     elif args.provider == "latitude":
         from gpuhunt.providers.latitude import LatitudeProvider
         provider = LatitudeProvider()
+    elif args.provider == "scaleway":
+        from gpuhunt.providers.scaleway import ScalewayProvider 
+        provider = ScalewayProvider()
     else:
         exit(f"Unknown provider {args.provider}")
 
