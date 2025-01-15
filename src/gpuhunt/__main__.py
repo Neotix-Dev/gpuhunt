@@ -22,6 +22,7 @@ def main():
             "tensordock",
             "vastai",
             "vultr",
+            "latitude",
         ],
     )
     parser.add_argument("--output", required=True)
@@ -87,6 +88,9 @@ def main():
         from gpuhunt.providers.vultr import VultrProvider
 
         provider = VultrProvider()
+    elif args.provider == "latitude":
+        from gpuhunt.providers.latitude import LatitudeProvider
+        provider = LatitudeProvider()
     else:
         exit(f"Unknown provider {args.provider}")
 
