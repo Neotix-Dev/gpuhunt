@@ -32,6 +32,7 @@ class VastAIProvider(AbstractProvider):
                     filters[key][op] = value
         filters["rentable"]["eq"] = True
         filters["rented"]["eq"] = False
+        filters["limit"] = 1000
         filters["order"] = [["score", "desc"]]
         resp = requests.post(bundles_url, json=filters, timeout=10)
         resp.raise_for_status()
