@@ -17,6 +17,7 @@ def main():
             "datacrunch",
             "gcp",
             "lambdalabs",
+            "leadergpu",
             "oci",
             "runpod",
             "tensordock",
@@ -61,6 +62,10 @@ def main():
         from gpuhunt.providers.lambdalabs import LambdaLabsProvider
 
         provider = LambdaLabsProvider(os.getenv("LAMBDALABS_TOKEN"))
+    elif args.provider == "leadergpu":
+        from gpuhunt.providers.leadergpu import LeaderGPUProvider
+
+        provider = LeaderGPUProvider()
     elif args.provider == "oci":
         from gpuhunt.providers.oci import OCICredentials, OCIProvider
 

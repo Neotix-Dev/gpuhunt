@@ -80,8 +80,8 @@ class WebScraper:
 
                 # Use OpenAI to extract structured data
                 messages = [
-                    {"role": "system", "content": "You are a helpful assistant that extracts GPU information from webpages."},
-                    {"role": "user", "content": f"Here is the webpage content:\n\n{content}\n\n{prompt}"}
+                    {"role": "system", "content": "You are a helpful assistant that extracts GPU information from webpages and returns it as JSON. Be sure to convert monthly prices to hourly by dividing by (24 * 30)."},
+                    {"role": "user", "content": f"Here is the webpage content. Extract the information and return it as JSON:\n\n{content}\n\n{prompt}"}
                 ]
                 
                 completion = self.client.chat.completions.create(
