@@ -56,12 +56,13 @@ class WebScraper:
         # Cache for scraped results
         self._cache: Dict[str, list[Dict[str, Any]]] = {}
 
-    def scrape_url(self, url: str, prompt: str) -> List[GPUInfo]:
-        """Scrape GPU information from a URL
+    def scrape_url(self, url: str, prompt: str, override_content: Optional[str] = None) -> List[GPUInfo]:
+        """Scrape GPU information from a URL or provided content
         
         Args:
-            url: URL to scrape
+            url: URL to scrape (or API endpoint if using override_content)
             prompt: Custom prompt for the scraper
+            override_content: Optional content to use instead of scraping the URL
             
         Returns:
             List of GPUInfo objects containing GPU information
@@ -70,18 +71,21 @@ class WebScraper:
             raw_results = self._cache[url]
         else:
             try:
-                # Get the webpage content
-                headers = {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-                }
-                response = requests.get(url, headers=headers, timeout=30)
-                response.raise_for_status()
-                content = response.text
+                # Get the content either from override or by scraping
+                content = override_content
+                if content is None:
+                    # Get the webpage content
+                    headers = {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                    }
+                    response = requests.get(url, headers=headers, timeout=30)
+                    response.raise_for_status()
+                    content = response.text
 
                 # Use OpenAI to extract structured data
                 messages = [
                     {"role": "system", "content": "You are a helpful assistant that extracts GPU information from webpages and returns it as JSON. Be sure to convert monthly prices to hourly by dividing by (24 * 30)."},
-                    {"role": "user", "content": f"Here is the webpage content. Extract the information and return it as JSON:\n\n{content}\n\n{prompt}"}
+                    {"role": "user", "content": f"Here is the content. Extract the information and return it as JSON:\n\n{content}\n\n{prompt}"}
                 ]
                 
                 completion = self.client.chat.completions.create(
@@ -92,7 +96,7 @@ class WebScraper:
                 )
                 
                 result = json.loads(completion.choices[0].message.content)
-                logger.info(f"Raw OpenAI result: {result}")
+                # logger.info(f"Raw OpenAI result: {result}")
                 
                 # Expect result to be a list of GPU instances
                 raw_results = result.get('gpus', [])
@@ -108,21 +112,30 @@ class WebScraper:
 
         # Convert raw results to GPUInfo objects
         logger.info(f"Scraped {len(raw_results)} GPUs from {url}")
-        return [
-            GPUInfo(
-                name=result["name"],
-                memory=float(result["memory"]),
-                count=int(result["count"]),
-                price=float(result["price"]),
-                location=result["location"],
-                cpu=int(result["cpu"]),
-                ram=float(result["ram"]),
-                disk=float(result["disk"]) if result.get("disk") else None,
-                spot=bool(result.get("spot", False)),
-                vendor=AcceleratorVendor.AMD if result.get("vendor", "").upper() == "AMD" else AcceleratorVendor.NVIDIA
-            )
-            for result in raw_results
-        ]
+        gpu_infos = []
+        for result in raw_results:
+            # Skip entries with all None values
+            if all(result.get(k) is None for k in ["name", "memory", "count", "price", "cpu", "ram"]):
+                continue
+                
+            try:
+                gpu_infos.append(GPUInfo(
+                    name=result.get("name", "Unknown"),
+                    memory=float(result.get("memory", 0)),
+                    count=int(result.get("count", 1)),
+                    price=float(result.get("price", 0)),
+                    location=result.get("location", "Unknown"),
+                    cpu=int(result.get("cpu", 0)),
+                    ram=float(result.get("ram", 0)),
+                    disk=float(result.get("disk")) if result.get("disk") else None,
+                    spot=bool(result.get("spot", False)),
+                    vendor=AcceleratorVendor.AMD if result.get("vendor", "").upper() == "AMD" else AcceleratorVendor.NVIDIA
+                ))
+            except (ValueError, TypeError) as e:
+                logger.error(f"Error parsing GPU info {result}: {str(e)}")
+                continue
+                
+        return gpu_infos
 
 class ScraperProvider(AbstractProvider, ABC):
     """Base class for providers that use web scraping"""

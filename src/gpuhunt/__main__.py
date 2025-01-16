@@ -13,13 +13,17 @@ def main():
         choices=[
             "aws",
             "azure",
+            "crusoe",
             "cudo",
             "datacrunch",
             "gcp",
+            "genesiscloud",
             "lambdalabs",
             "leadergpu",
+            "linode",
             "oci",
             "runpod",
+            "seeweb",
             "tensordock",
             "vastai",
             "vultr",
@@ -44,6 +48,10 @@ def main():
         from gpuhunt.providers.azure import AzureProvider
 
         provider = AzureProvider(os.getenv("AZURE_SUBSCRIPTION_ID"))
+    elif args.provider == "crusoe":
+        from gpuhunt.providers.crusoe import CrusoeProvider
+
+        provider = CrusoeProvider()
     elif args.provider == "cudo":
         from gpuhunt.providers.cudo import CudoProvider
 
@@ -58,6 +66,10 @@ def main():
         from gpuhunt.providers.gcp import GCPProvider
 
         provider = GCPProvider(os.getenv("GCP_PROJECT_ID"))
+    elif args.provider == "genesiscloud":
+        from gpuhunt.providers.genesiscloud import GenesisCloudProvider
+
+        provider = GenesisCloudProvider()
     elif args.provider == "lambdalabs":
         from gpuhunt.providers.lambdalabs import LambdaLabsProvider
 
@@ -66,6 +78,10 @@ def main():
         from gpuhunt.providers.leadergpu import LeaderGPUProvider
 
         provider = LeaderGPUProvider()
+    elif args.provider == "linode":
+        from gpuhunt.providers.linode import LinodeProvider
+
+        provider = LinodeProvider()
     elif args.provider == "oci":
         from gpuhunt.providers.oci import OCICredentials, OCIProvider
 
@@ -82,6 +98,10 @@ def main():
         from gpuhunt.providers.runpod import RunpodProvider
 
         provider = RunpodProvider()
+    elif args.provider == "seeweb":
+        from gpuhunt.providers.seeweb import SeewebProvider
+
+        provider = SeewebProvider()
     elif args.provider == "tensordock":
         from gpuhunt.providers.tensordock import TensorDockProvider
 
