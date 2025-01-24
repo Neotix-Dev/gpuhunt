@@ -9,6 +9,8 @@ from gpuhunt._internal.catalog import Catalog
 
 logger = logging.getLogger(__name__)
 
+ONLINE_PROVIDERS = ["cudo", "tensordock", "vastai", "vultr", "latitude", "crusoe", "genesiscloud", "leadergpu", "linode", "nebius", "scaleway", "seeweb"]
+
 
 @functools.lru_cache
 def default_catalog() -> Catalog:
@@ -16,20 +18,49 @@ def default_catalog() -> Catalog:
     Returns:
         the latest catalog with all available providers loaded
     """
+    logger.info("Initializing default catalog...")
     catalog = Catalog()
     catalog.load()
-    for module, provider in [
-        ("gpuhunt.providers.tensordock", "TensorDockProvider"),
-        ("gpuhunt.providers.vastai", "VastAIProvider"),
-        ("gpuhunt.providers.cudo", "CudoProvider"),
-        ("gpuhunt.providers.vultr", "VultrProvider"),
-    ]:
+    
+    # Add all online providers
+    provider_classes = {
+        "tensordock": "TensorDockProvider",
+        "vastai": "VastAIProvider",
+        "vultr": "VultrProvider",
+        "cudo": "CudoProvider",
+        "latitude": "LatitudeProvider",
+        "crusoe": "CrusoeProvider",
+        "genesiscloud": "GenesisCloudProvider",
+        "leadergpu": "LeaderGPUProvider",
+        "linode": "LinodeProvider",
+        "nebius": "NebiusProvider",
+        "scaleway": "ScalewayProvider",
+        "seeweb": "SeewebProvider"
+    }
+    
+    for provider_name in ONLINE_PROVIDERS:
+        module_name = f"gpuhunt.providers.{provider_name}"
+        provider_class = provider_classes.get(provider_name)
+        logger.info(f"Attempting to load provider: {provider_name} (class: {provider_class})")
         try:
-            module = importlib.import_module(module)
-            provider = getattr(module, provider)()
+            module = importlib.import_module(module_name)
+            provider = getattr(module, provider_class)()
+            # Special handling for providers that need configuration
+            if provider_name == "nebius":
+                logger.info("Skipping Nebius provider as it requires service account configuration")
+                continue
+            elif provider_name == "scaleway":
+                logger.info("Skipping Scaleway provider due to OpenAI rate limits")
+                continue
             catalog.add_provider(provider)
-        except ImportError:
-            logger.warning("Failed to import provider %s", provider)
+            logger.info(f"Successfully loaded provider: {provider_name}")
+        except ImportError as e:
+            logger.warning(f"Failed to import provider {provider_name}: {str(e)}")
+        except AttributeError as e:
+            logger.warning(f"Failed to initialize provider {provider_name}: {str(e)}")
+        except Exception as e:
+            logger.warning(f"Unexpected error loading provider {provider_name}: {str(e)}")
+    
     return catalog
 
 

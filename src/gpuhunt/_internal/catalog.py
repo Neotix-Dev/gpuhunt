@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 version_url = "https://dstack-gpu-pricing.s3.eu-west-1.amazonaws.com/v1/version"
 catalog_url = "https://dstack-gpu-pricing.s3.eu-west-1.amazonaws.com/v1/{version}/catalog.zip"
 OFFLINE_PROVIDERS = ["aws", "azure", "datacrunch", "gcp", "lambdalabs", "oci", "runpod"]
-ONLINE_PROVIDERS = ["cudo", "tensordock", "vastai", "vultr", "latitude"]
+ONLINE_PROVIDERS = ["cudo", "tensordock", "vastai", "vultr", "latitude", "crusoe", "genesiscloud", "leadergpu", "linode", "nebius", "scaleway", "seeweb"]
 RELOAD_INTERVAL = 15 * 60  # 15 minutes
 
 class Catalog:
@@ -162,12 +162,26 @@ class Catalog:
         Args:
             version: specific version of the catalog to download. If not specified, the latest version will be used
         """
-        if version is None:
-            version = self.get_latest_version()
-        logger.debug("Downloading catalog %s...", version)
-        with urllib.request.urlopen(catalog_url.format(version=version)) as f:
-            self.loaded_at = time.monotonic()
-            self.catalog = io.BytesIO(f.read())
+        logger.info("Starting catalog load...")
+        logger.info(f"Offline providers configured: {', '.join(OFFLINE_PROVIDERS)}")
+        logger.info(f"Online providers configured: {', '.join(ONLINE_PROVIDERS)}")
+        
+        if self.loaded_at and time.time() - self.loaded_at < RELOAD_INTERVAL:
+            logger.info("Using cached catalog (loaded less than %d minutes ago)", RELOAD_INTERVAL // 60)
+            return
+
+        try:
+            logger.info("Fetching version from %s", version_url)
+            with urllib.request.urlopen(version_url) as response:
+                version = response.read().decode().strip()
+            
+            url = catalog_url.format(version=version)
+            logger.info("Downloading catalog from %s", url)
+            with urllib.request.urlopen(url) as f:
+                self.loaded_at = time.monotonic()
+                self.catalog = io.BytesIO(f.read())
+        except Exception as e:
+            logger.error("Failed to load catalog: %s", e)
 
     @staticmethod
     def get_latest_version() -> str:
@@ -184,6 +198,7 @@ class Catalog:
         Args:
             provider: provider to add
         """
+        logger.info(f"Adding provider to catalog: {provider.NAME}")
         self.providers.append(provider)
 
     def _get_offline_provider_items(
