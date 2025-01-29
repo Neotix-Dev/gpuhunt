@@ -82,14 +82,18 @@ def matches(i: CatalogItem, q: QueryFilter) -> bool:
         cc = get_compute_capability(i.gpu_name)
         if not cc or not is_between(cc, q.min_compute_capability, q.max_compute_capability):
             return False
-    if not is_between(i.gpu_memory if i.gpu_count > 0 else 0, q.min_gpu_memory, q.max_gpu_memory):
+    
+    # Handle None values for gpu_memory
+    gpu_memory = i.gpu_memory if i.gpu_memory is not None else 0
+    if not is_between(gpu_memory if i.gpu_count > 0 else 0, q.min_gpu_memory, q.max_gpu_memory):
         return False
     if not is_between(
-        (i.gpu_count * i.gpu_memory) if i.gpu_count > 0 else 0,
+        (i.gpu_count * gpu_memory) if i.gpu_count > 0 else 0,
         q.min_total_gpu_memory,
         q.max_total_gpu_memory,
     ):
         return False
+    
     if i.disk_size is not None:
         if not is_between(i.disk_size, q.min_disk_size, q.max_disk_size):
             return False
